@@ -1,0 +1,26 @@
+
+//14936292
+//14257278
+
+// println!("{:?}", services);
+
+// let payment_services= services.get("payment");
+// match payment_services {
+//     Some(services) => {
+//         let test_get_node = services.get("132.128.25.15".to_string());
+//         println!("{:?}", test_get_node);
+
+//         services.add_node("192.168.1.21".to_string(), true);
+
+//         println!("after insertion {:?}", services)
+//     },
+//     None => {
+
+//     }
+// }
+
+// fn test(any_box : Box<&mut &str>) {
+//     let modify = *any_box;
+//     let test = modify.to_uppercase().as_mut;
+//     modify = test;
+// }

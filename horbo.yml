@@ -1,0 +1,16 @@
+services:
+  payment: ["192.168.12.1", "192.168.12.2", "192.168.12.3"]
+  booking: ["192.168.15.1", "192.168.15.2", "192.168.15.3"]
+metrics:
+  version: 1
+  source_port: "34251"
+  dest_port: "34254"
+  start_flag: "FF"
+  message_length:
+    reserved_bytes: 2
+  protocol_version: 1
+  message_body:
+    cpu:
+      id: 1
+    memory:
+      id: 2

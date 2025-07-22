@@ -1,0 +1,18 @@
+[package]
+name = "ulok"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde_yaml = "0.9.34"
+serde = { version = "1.0", features = ["derive"] }
+twox-hash = "2.1.0"
+tokio = { version = "1", features = ["full"] }
+actix-web = "4"
+prost = "0.13.1"
+tonic = "0.13.1"
+
+
+[build-dependencies]
+prost-build = "0.13.1"  # Must match prost
+tonic-build = "0.13.1"
