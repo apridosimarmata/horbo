@@ -96,7 +96,8 @@ impl NodePool for Ring {
 
         match write_nodes {
             Ok(mut n) => {
-                // linear scan for now, do better insertion later: binary search to find the index, then insert
+                // Linear search is just enough to find index for insertion
+                // justification: won't be holding a lot of node inside the vec
                 let pos = n.iter().position(|item| item.id >= node_id);
 
                 match pos {
