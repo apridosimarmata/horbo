@@ -1,5 +1,5 @@
 //
-use std::{fmt::Error, pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
 
 use tonic::{Request, Response, Status};
@@ -11,11 +11,11 @@ use crate::{
     grpc::{self, horbo_server::Horbo, *},
 };
 
-pub struct HorboService {
+pub struct HorboServiceController {
     pub service: Arc<Mutex<ServiceDiscovery>>,
 }
 
-impl Horbo for HorboService {
+impl Horbo for HorboServiceController {
     #[must_use]
     #[allow(
         elided_named_lifetimes,
@@ -41,19 +41,20 @@ impl Horbo for HorboService {
     }
 }
 
-impl HorboService {
+
+impl HorboServiceController {
     async fn register_node(
         &self,
         request: Request<AgentRegistrationRequest>,
     ) -> Result<Response<AgentRegistrationResponse>, Status> {
-        let services = self.service.lock().await;
-
         let ip_address = request.remote_addr();
 
         match ip_address {
             Some(ip) => {
+                let services = self.service.lock().await;
+                let req_inner = request.into_inner();
                 let id = services
-                    .register_node("payment".to_string(), ip.to_string())
+                    .register_node(req_inner.namespace, ip.to_string())
                     .await;
 
                 match id {

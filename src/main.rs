@@ -1,17 +1,18 @@
+use crate::grpc::horbo_server::HorboServer;
+use crate::pool::consistent_hash::{build, Ring};
+use crate::server::HorboServiceController;
+use core::schema::{init, ServiceDefinition};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::transport::Server as TonicServer;
-use core::schema::{ServiceDefinition, init};
-use crate::grpc::horbo_server::HorboServer;
-use crate::pool::consistent_hash::{Ring, build};
-use crate::server::HorboService;
 
+mod common;
+mod core;
 mod grpc;
 mod pool;
-mod core;
-mod utils;
 mod server;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,8 +31,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     /* build and serve grpc */
-    let svc = HorboServer::new(HorboService{
-        service:Arc::new(Mutex::new(core::application::service_discovery::ServiceDiscovery { service_map: services })),
+    let svc = HorboServer::new(HorboServiceController {
+        service: Arc::new(Mutex::new(
+            core::application::service_discovery::ServiceDiscovery::new(services),
+        )),
     });
     TonicServer::builder()
         .add_service(svc)

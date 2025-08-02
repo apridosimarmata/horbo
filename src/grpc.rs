@@ -38,6 +38,8 @@ pub struct AgentRegistrationResponse {
 pub struct AgentRegistrationRequest {
     #[prost(string, tag = "1")]
     pub api_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub namespace: ::prost::alloc::string::String,
 }
 /// Generated client implementations.
 pub mod horbo_client {

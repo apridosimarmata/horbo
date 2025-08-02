@@ -27,6 +27,7 @@ message AgentRegistrationResponse {
 
 message AgentRegistrationRequest {
   string api_key = 1;
+  string namespace = 2;
 }
 
 service Horbo {
