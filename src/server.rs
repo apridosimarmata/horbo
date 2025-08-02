@@ -1,11 +1,19 @@
 //
-use std::pin::Pin;
+use std::{fmt::Error, pin::Pin, sync::Arc};
+use tokio::sync::Mutex;
 
-use tonic::{Response, Status};
+use tonic::{Request, Response, Status};
 
-use crate::grpc::{self, horbo_server::Horbo, *};
+use crate::{
+    core::{
+        application::service_discovery::ServiceDiscovery, domain::server::ServiceDiscoveryUsecase,
+    },
+    grpc::{self, horbo_server::Horbo, *},
+};
 
-pub struct HorboService {}
+pub struct HorboService {
+    pub service: Arc<Mutex<ServiceDiscovery>>,
+}
 
 impl Horbo for HorboService {
     #[must_use]
@@ -16,15 +24,11 @@ impl Horbo for HorboService {
     )]
     fn register_agent<'life0, 'async_trait>(
         &'life0 self,
-        request: tonic::Request<grpc::AgentRegistrationRequest>,
+        request: Request<AgentRegistrationRequest>,
     ) -> Pin<
         Box<
-            dyn Future<
-                    Output = std::result::Result<
-                        tonic::Response<grpc::AgentRegistrationResponse>,
-                        tonic::Status,
-                    >,
-                > + Send
+            dyn Future<Output = std::result::Result<Response<AgentRegistrationResponse>, Status>>
+                + Send
                 + 'async_trait,
         >,
     >
@@ -32,17 +36,36 @@ impl Horbo for HorboService {
         'life0: 'async_trait,
         Self: 'async_trait,
     {
-        my_handler()
+        let _ = request;
+        Box::pin(self.register_node(request))
     }
 }
 
-fn my_handler()
--> Pin<Box<dyn Future<Output = Result<Response<AgentRegistrationResponse>, Status>> + Send>> {
-    Box::pin(test2())
-}
+impl HorboService {
+    async fn register_node(
+        &self,
+        request: Request<AgentRegistrationRequest>,
+    ) -> Result<Response<AgentRegistrationResponse>, Status> {
+        let services = self.service.lock().await;
 
-async fn test2() -> Result<Response<AgentRegistrationResponse>, Status> {
-    Ok(Response::new(AgentRegistrationResponse {
-        client_id: "1".to_string(),
-    }))
+        let ip_address = request.remote_addr();
+
+        match ip_address {
+            Some(ip) => {
+                let id = services
+                    .register_node("payment".to_string(), ip.to_string())
+                    .await;
+
+                match id {
+                    Ok(_id) => Ok(Response::new(AgentRegistrationResponse {
+                        client_id: _id.to_string(),
+                    })),
+                    Err(_) => Err(Status::invalid_argument("namespace doesn't exists")),
+                }
+            }
+            None => {
+                return Err(Status::invalid_argument("ip is not valid"));
+            }
+        }
+    }
 }

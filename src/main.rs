@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tonic::transport::Server as TonicServer;
 use core::schema::{ServiceDefinition, init};
 use crate::grpc::horbo_server::HorboServer;
@@ -28,7 +30,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     /* build and serve grpc */
-    let svc = HorboServer::new(HorboService{});
+    let svc = HorboServer::new(HorboService{
+        service:Arc::new(Mutex::new(core::application::service_discovery::ServiceDiscovery { service_map: services })),
+    });
     TonicServer::builder()
         .add_service(svc)
         .serve("[::1]:50051".parse()?)
