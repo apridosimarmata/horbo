@@ -2,13 +2,12 @@ use crate::common::error::ErrorResponse;
 use crate::pool::pool::NodePool;
 use crate::utils::hash::ip_to_hash;
 use std::collections::HashMap;
-use std::error::Error;
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
 pub struct Ring {
     pub nodes: RwLock<Vec<Arc<Node>>>,
-    pub registered_ips: Vec<String>,
+    // pub registered_ips: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,7 +20,7 @@ pub struct Node {
 pub fn build(ip_list: Vec<String>) -> Ring {
     let res = Ring {
         nodes: RwLock::new(Vec::new()),
-        registered_ips: Vec::new(),
+        // registered_ips: Vec::new(),
     };
 
     let mut nodes_mapper: HashMap<u32, Node> = HashMap::new();
@@ -125,7 +124,7 @@ impl NodePool for Ring {
         Ok(node_id)
     }
 
-    fn remove(&self, ip_addr: String) -> Result<(), ErrorResponse> {
+    fn set_health_status(&self, ip_addr: String, is_healthy: bool) -> Result<(), ErrorResponse> {
         let write_nodes = self.nodes.write();
 
         match write_nodes {
@@ -134,7 +133,22 @@ impl NodePool for Ring {
                 let pos = nodes.iter().position(|item| item.id == node_id);
                 match pos {
                     Some(pos) => {
-                        nodes.remove(pos);
+                        let node = nodes.get_mut(pos);
+                        match node {
+                            Some(node) => {
+                                if node.healthy != is_healthy {
+                                    // Replaces old node with new copy
+                                    nodes[pos] = Arc::new(Node {
+                                        id: node.id,
+                                        ip: node.ip.clone(),
+                                        healthy: is_healthy,
+                                    });
+                                }
+
+                                return Ok(());
+                            }
+                            None => {}
+                        }
                     }
                     None => {
                         return Err(ErrorResponse::BadRequest(
