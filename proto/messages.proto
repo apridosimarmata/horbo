@@ -22,7 +22,7 @@ message IPRequest {
 }
 
 message AgentRegistrationResponse {
-  string client_id = 1;
+  string service_id = 1;
 }
 
 message AgentRegistrationRequest {

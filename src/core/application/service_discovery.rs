@@ -23,7 +23,7 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
 
         match ring {
             Some(ring) => {
-                ring.add_server(ip_address);
+                let _ = ring.add_server(ip_address);
             },
             None => {
                 return Err(ErrorResponse::BadRequest("namespace not found".to_string()))
@@ -40,11 +40,11 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         match ring {
             Some(ring) => {
                 match ring.get(client_ip_address) {
-                    Some(node) => {
-                        return Ok(node.ip.clone());
+                    Ok(service_ip) => {
+                        return Ok(service_ip);
                     },
-                    None => {
-                        return Err(ErrorResponse::Internal("no service found".to_string()));
+                    Err(e) => {
+                        return Err(ErrorResponse::Internal(e.to_string()));
                     }
                 }
             },

@@ -114,7 +114,7 @@ impl HorboServiceController {
 
                 match id {
                     Ok(_id) => Ok(Response::new(AgentRegistrationResponse {
-                        client_id: _id.to_string(),
+                        service_id: _id.to_string(),
                     })),
                     Err(_) => Err(Status::invalid_argument("namespace doesn't exists")),
                 }

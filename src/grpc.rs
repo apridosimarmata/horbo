@@ -32,7 +32,7 @@ pub struct IpRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentRegistrationResponse {
     #[prost(string, tag = "1")]
-    pub client_id: ::prost::alloc::string::String,
+    pub service_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentRegistrationRequest {

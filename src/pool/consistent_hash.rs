@@ -60,34 +60,27 @@ pub fn build(ip_list: Vec<String>) -> Ring {
 }
 
 impl NodePool for Ring {
-    fn get(&self, client_ip_addr: String) -> Option<Arc<Node>> {
-        let client_ip_hash = ip_to_hash(&client_ip_addr);
-
+    fn get(&self, client_ip_addr: String) -> Result<String, ErrorResponse> {
+        let client_id = ip_to_hash(&client_ip_addr);
         let read_nodes = self.nodes.read();
-        let mut res: Option<Arc<Node>> = None;
 
         match read_nodes {
-            Ok(r) => {
-                for node in r.clone().into_iter() {
-                    let bind = node.clone();
+            Ok(nodes) => {
+                let pos = nodes.iter().position(|item| item.id >= client_id);
 
-                    if res.is_none() {
-                        res = Some(node.clone());
-                    }
-
-                    if node.id > client_ip_hash && node.healthy {
-                        res = Some(bind.clone());
-                        break;
-                    }
+                match pos {
+                    Some(pos)=> return Ok(nodes[pos].id.to_string()),
+                    None => {
+                        
+                    },
                 }
             }
-            Err(e) => return None,
+            Err(_) => {
+
+            },
         }
 
-        match res {
-            Some(n) => Some(n),
-            None => None,
-        }
+        Err(ErrorResponse::Internal("can't retrieve service from namespace".to_string()))
     }
 
     fn add_server(&self, ip_addr: String) -> Result<String, ErrorResponse> {
@@ -95,14 +88,14 @@ impl NodePool for Ring {
         let write_nodes = self.nodes.write();
 
         match write_nodes {
-            Ok(mut n) => {
+            Ok(mut nodes) => {
                 // Linear search is just enough to find index for insertion
                 // justification: won't be holding a lot of node inside the vec
-                let pos = n.iter().position(|item| item.id >= node_id);
+                let pos = nodes.iter().position(|item| item.id >= node_id);
 
                 match pos {
-                    Some(i) if n[i].id == node_id => return Ok(node_id.to_string()),
-                    Some(i) => n.insert(
+                    Some(i) if nodes[i].id == node_id => return Ok(node_id.to_string()),
+                    Some(i) => nodes.insert(
                         i,
                         Arc::new(Node {
                             id: node_id,
@@ -110,7 +103,7 @@ impl NodePool for Ring {
                             healthy: true,
                         }),
                     ),
-                    None => n.push(Arc::new(Node {
+                    None => nodes.push(Arc::new(Node {
                         id: node_id,
                         ip: ip_addr.clone(),
                         healthy: true,
