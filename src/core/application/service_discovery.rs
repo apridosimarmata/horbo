@@ -108,15 +108,16 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
     /// Notes:
     /// - If the namespace doesn't exist in `service_map`, the function returns `Ok(())` silently.
     async fn node_heartbeat(&self, namespace: String, ip_address: String, metric: UtilizationMetric) -> Result<(),ErrorResponse> {
-        if !(metric.cpu_usage > 80.00 || metric.memory_usage > 85.00) {
-            return Ok(())
+        let mut is_healthy = false;
+        if metric.cpu_usage < 80.00 && metric.memory_usage < 85.00 {
+            is_healthy = true
         }
 
         let ring = self.service_map.get(&namespace);
         
         match ring {
             Some(ring) => {
-                match ring.remove(ip_address) {
+                match ring.set_health_status(ip_address, is_healthy) {
                     Ok(_) => {
                         return Ok(())
                     },

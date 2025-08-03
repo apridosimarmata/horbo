@@ -8,7 +8,7 @@ use crate::{
     core::{
         application::service_discovery::ServiceDiscovery, domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
     },
-    grpc::{self, horbo_server::Horbo, *},
+    grpc::{horbo_server::Horbo, *},
 };
 
 pub struct HorboServiceController {
@@ -16,7 +16,6 @@ pub struct HorboServiceController {
 }
 
 impl Horbo for HorboServiceController {
-    #[must_use]
     #[allow(
         elided_named_lifetimes,
         clippy::type_complexity,
@@ -39,7 +38,6 @@ impl Horbo for HorboServiceController {
         Box::pin(self.register_node(request))
     }
 
-    #[must_use]
     #[allow(
         elided_named_lifetimes,
         clippy::type_complexity,
@@ -63,7 +61,6 @@ impl Horbo for HorboServiceController {
         Box::pin(self.service_lookup(request))
     }
 
-    #[must_use]
     #[allow(
         elided_named_lifetimes,
         clippy::type_complexity,
@@ -88,7 +85,6 @@ impl Horbo for HorboServiceController {
         todo!()
     }
 
-    #[must_use]
     #[allow(
         elided_named_lifetimes,
         clippy::type_complexity,
