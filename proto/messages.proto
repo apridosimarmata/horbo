@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 
 message Metric {
   float cpu = 1;
@@ -36,9 +37,32 @@ message LookupRequest {
 
 message LookupResponse {
   string ip_address = 1;
+  string namespace = 2;
+}
+
+message FailureReportRequest {
+  string ip_address = 1;
+  string namespace = 2;
+}
+
+message HeartbeatRequest {
+  float cpu_usage = 1;
+  float memory_usage = 2;
+  string namespace = 3;
+}
+
+message HeartbeatResponse {
+  repeated Node unhealthy_services = 1;
+}
+
+message Node {
+  string id = 1;
+  string namespace = 2;
 }
 
 service Horbo {
   rpc RegisterAgent(AgentRegistrationRequest) returns (AgentRegistrationResponse);
   rpc ServiceLookup(LookupRequest) returns (LookupResponse);
+  rpc ServiceFailureReport(FailureReportRequest) returns (google.protobuf.Empty);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }

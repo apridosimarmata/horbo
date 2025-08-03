@@ -50,6 +50,36 @@ pub struct LookupRequest {
 pub struct LookupResponse {
     #[prost(string, tag = "1")]
     pub ip_address: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub namespace: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FailureReportRequest {
+    #[prost(string, tag = "1")]
+    pub ip_address: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub namespace: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HeartbeatRequest {
+    #[prost(float, tag = "1")]
+    pub cpu_usage: f32,
+    #[prost(float, tag = "2")]
+    pub memory_usage: f32,
+    #[prost(string, tag = "3")]
+    pub namespace: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HeartbeatResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub unhealthy_services: ::prost::alloc::vec::Vec<Node>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Node {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub namespace: ::prost::alloc::string::String,
 }
 /// Generated client implementations.
 pub mod horbo_client {
@@ -181,6 +211,48 @@ pub mod horbo_client {
             req.extensions_mut().insert(GrpcMethod::new("Horbo", "ServiceLookup"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn service_failure_report(
+            &mut self,
+            request: impl tonic::IntoRequest<super::FailureReportRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/Horbo/ServiceFailureReport",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("Horbo", "ServiceFailureReport"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn heartbeat(
+            &mut self,
+            request: impl tonic::IntoRequest<super::HeartbeatRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::HeartbeatResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/Horbo/Heartbeat");
+            let mut req = request.into_request();
+            req.extensions_mut().insert(GrpcMethod::new("Horbo", "Heartbeat"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -207,6 +279,17 @@ pub mod horbo_server {
             &self,
             request: tonic::Request<super::LookupRequest>,
         ) -> std::result::Result<tonic::Response<super::LookupResponse>, tonic::Status>;
+        async fn service_failure_report(
+            &self,
+            request: tonic::Request<super::FailureReportRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        async fn heartbeat(
+            &self,
+            request: tonic::Request<super::HeartbeatRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::HeartbeatResponse>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct HorboServer<T> {
@@ -357,6 +440,94 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ServiceLookupSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/Horbo/ServiceFailureReport" => {
+                    #[allow(non_camel_case_types)]
+                    struct ServiceFailureReportSvc<T: Horbo>(pub Arc<T>);
+                    impl<
+                        T: Horbo,
+                    > tonic::server::UnaryService<super::FailureReportRequest>
+                    for ServiceFailureReportSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::FailureReportRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Horbo>::service_failure_report(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ServiceFailureReportSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/Horbo/Heartbeat" => {
+                    #[allow(non_camel_case_types)]
+                    struct HeartbeatSvc<T: Horbo>(pub Arc<T>);
+                    impl<T: Horbo> tonic::server::UnaryService<super::HeartbeatRequest>
+                    for HeartbeatSvc<T> {
+                        type Response = super::HeartbeatResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::HeartbeatRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Horbo>::heartbeat(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = HeartbeatSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -66,24 +66,31 @@ impl NodePool for Ring {
 
         match read_nodes {
             Ok(nodes) => {
-                let pos = nodes.iter().position(|item| item.id >= client_id);
+                if nodes.len() == 0 {
+                    return Err(ErrorResponse::Internal(
+                        "no service found in namespace".to_string(),
+                    ));
+                }
+
+                let pos = nodes
+                    .iter()
+                    .position(|item| item.id >= client_id && item.healthy);
 
                 match pos {
-                    Some(pos)=> return Ok(nodes[pos].id.to_string()),
-                    None => {
-                        
-                    },
+                    Some(pos) => return Ok(nodes[pos].id.to_string()),
+                    None => {}
                 }
             }
-            Err(_) => {
-
-            },
+            Err(_) => {}
         }
 
-        Err(ErrorResponse::Internal("can't retrieve service from namespace".to_string()))
+        // TODO: always return a service if there's at least one service is healthy
+        Err(ErrorResponse::Internal(
+            "can't retrieve service from namespace".to_string(),
+        ))
     }
 
-    fn add_server(&self, ip_addr: String) -> Result<String, ErrorResponse> {
+    fn add_server(&self, ip_addr: String) -> Result<u32, ErrorResponse> {
         let node_id = ip_to_hash(&ip_addr);
         let write_nodes = self.nodes.write();
 
@@ -94,7 +101,7 @@ impl NodePool for Ring {
                 let pos = nodes.iter().position(|item| item.id >= node_id);
 
                 match pos {
-                    Some(i) if nodes[i].id == node_id => return Ok(node_id.to_string()),
+                    Some(i) if nodes[i].id == node_id => return Ok(node_id),
                     Some(i) => nodes.insert(
                         i,
                         Arc::new(Node {
@@ -115,28 +122,32 @@ impl NodePool for Ring {
             }
         }
 
-        Ok(node_id.to_string())
+        Ok(node_id)
     }
 
-    fn remove(&self, id: u32) {
+    fn remove(&self, ip_addr: String) -> Result<(), ErrorResponse> {
         let write_nodes = self.nodes.write();
 
-        let mut remove_at: usize = 0;
-
         match write_nodes {
-            Ok(mut n) => {
-                // linear scan for now, do better insertion later: binary search, then insert
-                let bind = n.clone();
-                for item in bind.iter().enumerate() {
-                    if item.1.id > id {
-                        remove_at = item.0;
-                        break;
+            Ok(mut nodes) => {
+                let node_id = ip_to_hash(&ip_addr);
+                let pos = nodes.iter().position(|item| item.id == node_id);
+                match pos {
+                    Some(pos) => {
+                        nodes.remove(pos);
+                    }
+                    None => {
+                        return Err(ErrorResponse::BadRequest(
+                            "can't find service inside the namespace".to_string(),
+                        ))
                     }
                 }
-
-                n.remove(remove_at);
             }
-            Err(e) => {}
+            Err(e) => {
+                return Err(ErrorResponse::Internal(e.to_string()));
+            }
         }
+
+        Ok(())
     }
 }
