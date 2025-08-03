@@ -30,6 +30,15 @@ message AgentRegistrationRequest {
   string namespace = 2;
 }
 
+message LookupRequest {
+  string namespace = 1;
+}
+
+message LookupResponse {
+  string ip_address = 1;
+}
+
 service Horbo {
   rpc RegisterAgent(AgentRegistrationRequest) returns (AgentRegistrationResponse);
+  rpc ServiceLookup(LookupRequest) returns (LookupResponse);
 }

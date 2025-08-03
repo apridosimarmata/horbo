@@ -41,6 +41,16 @@ pub struct AgentRegistrationRequest {
     #[prost(string, tag = "2")]
     pub namespace: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupRequest {
+    #[prost(string, tag = "1")]
+    pub namespace: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupResponse {
+    #[prost(string, tag = "1")]
+    pub ip_address: ::prost::alloc::string::String,
+}
 /// Generated client implementations.
 pub mod horbo_client {
     #![allow(
@@ -153,6 +163,24 @@ pub mod horbo_client {
             req.extensions_mut().insert(GrpcMethod::new("Horbo", "RegisterAgent"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn service_lookup(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LookupRequest>,
+        ) -> std::result::Result<tonic::Response<super::LookupResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/Horbo/ServiceLookup");
+            let mut req = request.into_request();
+            req.extensions_mut().insert(GrpcMethod::new("Horbo", "ServiceLookup"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -175,6 +203,10 @@ pub mod horbo_server {
             tonic::Response<super::AgentRegistrationResponse>,
             tonic::Status,
         >;
+        async fn service_lookup(
+            &self,
+            request: tonic::Request<super::LookupRequest>,
+        ) -> std::result::Result<tonic::Response<super::LookupResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct HorboServer<T> {
@@ -282,6 +314,49 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RegisterAgentSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/Horbo/ServiceLookup" => {
+                    #[allow(non_camel_case_types)]
+                    struct ServiceLookupSvc<T: Horbo>(pub Arc<T>);
+                    impl<T: Horbo> tonic::server::UnaryService<super::LookupRequest>
+                    for ServiceLookupSvc<T> {
+                        type Response = super::LookupResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::LookupRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Horbo>::service_lookup(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ServiceLookupSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

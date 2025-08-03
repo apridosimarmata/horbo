@@ -34,6 +34,26 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         Ok(unique_id)
     }
 
+    async fn service_lookup(&self, namespace: String, client_ip_address: String) -> Result<String, ErrorResponse> {
+        let ring = self.service_map.get(&namespace);
+
+        match ring {
+            Some(ring) => {
+                match ring.get(client_ip_address) {
+                    Some(node) => {
+                        return Ok(node.ip.clone());
+                    },
+                    None => {
+                        return Err(ErrorResponse::Internal("no service found".to_string()));
+                    }
+                }
+            },
+            None => {
+                return Err(ErrorResponse::BadRequest("namespace not found".to_string()))
+            }
+        }
+    }
+
     async fn remove_node(&self, namespace: String, ip_address: String) -> Result<(), ErrorResponse> {
         todo!()
     }
@@ -46,7 +66,5 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         todo!()
     }
 
-    async fn service_lookup(&self, namespace: String) -> Result<(), ErrorResponse> {
-        todo!()
-    }
+
 }

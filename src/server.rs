@@ -36,13 +36,68 @@ impl Horbo for HorboServiceController {
         'life0: 'async_trait,
         Self: 'async_trait,
     {
-        let _ = request;
         Box::pin(self.register_node(request))
+    }
+
+    #[must_use]
+    #[allow(
+        elided_named_lifetimes,
+        clippy::type_complexity,
+        clippy::type_repetition_in_bounds
+    )]
+    fn service_lookup<'life0, 'async_trait>(
+        &'life0 self,
+        request: tonic::Request<LookupRequest>,
+    ) -> ::core::pin::Pin<
+        Box<
+            dyn ::core::future::Future<
+                    Output = std::result::Result<
+                        tonic::Response<LookupResponse>,
+                        tonic::Status,
+                    >,
+                > + ::core::marker::Send
+                + 'async_trait,
+        >,
+    >
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(self.service_lookup(request))
     }
 }
 
-
 impl HorboServiceController {
+    async fn service_lookup(
+        &self,
+        request: Request<LookupRequest>,
+    ) -> Result<Response<LookupResponse>, Status> {
+        let client_ip_address = request.remote_addr();
+
+        match client_ip_address {
+            Some(ip) => {
+                let services = self.service.lock().await;
+                let req_inner = request.into_inner();
+
+
+                let service_ip = services.service_lookup(req_inner.namespace, ip.to_string()).await;
+                match service_ip {
+                    Ok(service_ip )=> {
+                        return Ok(Response::new(LookupResponse{
+                            ip_address: service_ip,
+                        }));
+                    },
+                    Err(e) => {
+                        return Err(Status::internal(e.to_string()));
+                    }
+                }
+            },
+            None => {
+                return Err(Status::invalid_argument("client ip is not valid"));
+            }
+        }
+    }
+
     async fn register_node(
         &self,
         request: Request<AgentRegistrationRequest>,

@@ -1,6 +1,6 @@
 services:
-  payment: ["192.168.12.1", "192.168.12.2", "192.168.12.3"]
-  booking: ["192.168.15.1", "192.168.15.2", "192.168.15.3"]
+  payment: []
+  booking: []
 metrics:
   version: 1
   source_port: "34251"
