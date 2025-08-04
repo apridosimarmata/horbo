@@ -26,7 +26,10 @@ This document outlines the main flows of the **Horbo** service discovery system,
 ![Service Lookup Flow](./assets/images/service_lookup.png)
 <p align="center"><em>Figure 3: Consistent Hashing Lookup</em></p>
 
+> More usage features coming soon...
+
 ---
+
 
 ## 📁 Notes
 
