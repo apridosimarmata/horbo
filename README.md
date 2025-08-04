@@ -16,6 +16,7 @@ It helps services register themselves and enables other services to find them ef
 - ♻️ **Singleton Mapping Layer** — internal service mapper is a thread-safe singleton
 - ⚙️ Built in **Rust** for speed, safety, and reliability
 
+
 ---
 
 ## 🧠 Design Highlights
@@ -53,11 +54,12 @@ let endpoint = lookup("some-key");
 
 - [x] Service Registration
 - [x] Service Lookup
-- [ ] Health Check (Heartbeat)
+- [x] Health Check (Heartbeat)
 - [ ] Gossip Protocol for syncing
 - [ ] REST API or gRPC interface
 - [ ] CLI or Web Dashboard
 
+Please see [diagrams](./FEATURES.md) for details.
 ---
 
 ## 📷 Logo
