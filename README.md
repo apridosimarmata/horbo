@@ -55,11 +55,12 @@ let endpoint = lookup("some-key");
 - [x] Service Registration
 - [x] Service Lookup
 - [x] Health Check (Heartbeat)
-- [ ] Gossip Protocol for syncing
-- [ ] REST API or gRPC interface
-- [ ] CLI or Web Dashboard
 
-Please see [diagrams](./FEATURES.md) for details.
+![Horbo Timeline](./assets/images/horbo_timeline.png)
+
+
+Please see [features](./FEATURES.md) for details.
+
 ---
 
 ## 📷 Logo
