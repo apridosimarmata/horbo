@@ -58,7 +58,6 @@ let endpoint = lookup("some-key");
 
 ![Horbo Timeline](./assets/images/horbo_timeline.png)
 
-
 Please see [features](./FEATURES.md) for details.
 
 ---
