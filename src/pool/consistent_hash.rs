@@ -73,20 +73,34 @@ impl NodePool for Ring {
 
                 let pos = nodes
                     .iter()
-                    .position(|item| item.id >= client_id && item.healthy);
+                    .position(|item| (item.id >= client_id && item.healthy));
 
                 match pos {
                     Some(pos) => return Ok(nodes[pos].id.to_string()),
-                    None => {}
+                    None => {
+                        // Pick closest node to client_id
+                        let mut closest_id: u32 = 0;
+
+                        for node in nodes.iter() {
+                            if node.id >= client_id {
+                                return Ok(closest_id.to_string());
+                            }
+
+                            if node.healthy {
+                                closest_id = node.id;
+                            }
+                        }
+
+                        return Err(ErrorResponse::Internal(
+                            "no healthy service found in namespace".to_string(),
+                        ));
+                    }
                 }
             }
-            Err(_) => {}
+            Err(e) => {
+                return Err(ErrorResponse::Internal(e.to_string()));
+            }
         }
-
-        // TODO: always return a service if there's at least one service is healthy
-        Err(ErrorResponse::Internal(
-            "can't retrieve service from namespace".to_string(),
-        ))
     }
 
     fn add_server(&self, ip_addr: String) -> Result<u32, ErrorResponse> {
