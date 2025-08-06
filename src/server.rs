@@ -6,7 +6,8 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     core::{
-        application::service_discovery::ServiceDiscovery, domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
+        application::service_discovery::ServiceDiscovery,
+        domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
     },
     grpc::{horbo_server::Horbo, *},
 };
@@ -81,8 +82,7 @@ impl Horbo for HorboServiceController {
         'life0: 'async_trait,
         Self: 'async_trait,
     {
-        let _ = request;
-        todo!()
+        Box::pin(self.handle_failure_report(request))
     }
 
     #[allow(
@@ -96,10 +96,7 @@ impl Horbo for HorboServiceController {
     ) -> ::core::pin::Pin<
         Box<
             dyn ::core::future::Future<
-                    Output = std::result::Result<
-                        tonic::Response<HeartbeatResponse>,
-                        tonic::Status,
-                    >,
+                    Output = std::result::Result<tonic::Response<HeartbeatResponse>, tonic::Status>,
                 > + ::core::marker::Send
                 + 'async_trait,
         >,
@@ -113,9 +110,37 @@ impl Horbo for HorboServiceController {
 }
 
 impl HorboServiceController {
+    async fn handle_failure_report(
+        &self,
+        request: Request<FailureReportRequest>,
+    ) -> Result<Response<()>, Status> {
+        // TODO: How to tell if each request is legitimate request and being made by registered node
+        let ip_address = request.remote_addr();
+
+        match ip_address {
+            Some(_) => {
+                let services = self.service.lock().await;
+                let req_inner = request.into_inner();
+
+                let res = services
+                    .mark_node_unhealthy(req_inner.namespace, req_inner.ip_address)
+                    .await;
+                match res {
+                    Ok(_) => return Ok(().into()),
+                    Err(e) => {
+                        return Err(Status::internal(e.to_string()));
+                    }
+                }
+            }
+            None => {
+                return Err(Status::invalid_argument("ip is not valid"));
+            }
+        }
+    }
+
     async fn heartbeat(
         &self,
-        request: Request<HeartbeatRequest>
+        request: Request<HeartbeatRequest>,
     ) -> Result<Response<HeartbeatResponse>, Status> {
         let ip_address = request.remote_addr();
 
@@ -124,31 +149,39 @@ impl HorboServiceController {
                 let services = self.service.lock().await;
                 let req_inner = request.into_inner();
 
-                let res =services.node_heartbeat(req_inner.namespace, ip.to_string(), UtilizationMetric{
-                    cpu_usage: req_inner.cpu_usage,
-                    memory_usage: req_inner.memory_usage,
-                }).await;
+                let res = services
+                    .node_heartbeat(
+                        req_inner.namespace,
+                        ip.to_string(),
+                        UtilizationMetric {
+                            cpu_usage: req_inner.cpu_usage,
+                            memory_usage: req_inner.memory_usage,
+                        },
+                    )
+                    .await;
 
                 match res {
                     Ok(_) => {
                         return Ok(Response::new(
-                            HeartbeatResponse { unhealthy_services: Vec::new() } // TODO; compute unhealthy service inside app layer.
-                            // Approach: save each unhealthy service inside a dedicated HashMap
-                            // key == namespace
-                            // value == list of ip addr
-                            // or
-                            // key == ip addr
-                            // value == namespace
-                        ))
-                    },
+                            HeartbeatResponse {
+                                unhealthy_services: Vec::new(),
+                            }, // TODO; compute unhealthy service inside app layer.
+                               // Approach: save each unhealthy service inside a dedicated HashMap
+                               // key == namespace
+                               // value == list of ip addr
+                               // or
+                               // key == ip addr
+                               // value == namespace
+                        ));
+                    }
                     Err(e) => {
                         return Err(Status::internal(e.to_string()));
                     }
                 }
-            },
+            }
             None => {
                 return Err(Status::invalid_argument("ip is not valid"));
-            },
+            }
         }
     }
 
