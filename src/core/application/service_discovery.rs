@@ -1,22 +1,25 @@
-use std::collections::HashMap;
-use crate::{core::domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase}, pool::{consistent_hash::Ring, pool::NodePool}};
 use crate::common::error::ErrorResponse;
+use crate::{
+    core::domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
+    pool::{consistent_hash::Ring, pool::NodePool},
+};
+use std::collections::HashMap;
 
-// #[derive(Clone)]
 pub struct ServiceDiscovery {
-    pub service_map: HashMap<String, Ring>
+    pub service_map: HashMap<String, Ring>,
 }
-
 
 impl ServiceDiscovery {
     pub fn new(service_map: HashMap<String, Ring>) -> Self {
-        ServiceDiscovery { service_map: service_map  }
+        ServiceDiscovery {
+            service_map: service_map,
+        }
     }
 }
 
 impl ServiceDiscoveryUsecase for ServiceDiscovery {
     /// Registers a node (server) into the consistent hash ring under a given namespace.
-    /// 
+    ///
     /// # Arguments
     /// - `namespace`: The logical group to which the node belongs (e.g., service name or environment).
     /// - `ip_address`: The IP address of the node being registered.
@@ -30,24 +33,22 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
     /// - Looks up the corresponding consistent hash ring for the namespace.
     /// - Adds the node to the ring if the namespace exists.
     /// - Returns an error if the namespace is unknown.
-    async fn register_node(&self, namespace:String, ip_address: String) -> Result<u32, ErrorResponse> {
+    async fn register_node(
+        &self,
+        namespace: String,
+        ip_address: String,
+    ) -> Result<u32, ErrorResponse> {
         let ring = self.service_map.get(&namespace);
 
         match ring {
             Some(ring) => {
                 let unique_id = ring.add_server(ip_address);
                 match unique_id {
-                    Ok(id) => {
-                        return Ok(id)
-                    },
-                    Err(e) => {
-                        return Err(e)
-                    }
+                    Ok(id) => return Ok(id),
+                    Err(e) => return Err(e),
                 }
-            },
-            None => {
-                return Err(ErrorResponse::BadRequest("namespace not found".to_string()))
             }
+            None => return Err(ErrorResponse::BadRequest("namespace not found".to_string())),
         };
     }
 
@@ -66,32 +67,29 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
     /// - Retrieves the consistent hash ring associated with the given namespace.
     /// - Uses the client IP as a key to find the appropriate service IP from the ring.
     /// - Handles and forwards any errors that occur during lookup.
-    async fn service_lookup(&self, namespace: String, client_ip_address: String) -> Result<String, ErrorResponse> {
+    async fn service_lookup(
+        &self,
+        namespace: String,
+        client_ip_address: String,
+    ) -> Result<String, ErrorResponse> {
         let ring = self.service_map.get(&namespace);
 
         match ring {
-            Some(ring) => {
-                match ring.get(client_ip_address) {
-                    Ok(service_ip) => {
-                        return Ok(service_ip);
-                    },
-                    Err(e) => {
-                        return Err(e)
-                    }
+            Some(ring) => match ring.get(client_ip_address) {
+                Ok(service_ip) => {
+                    return Ok(service_ip);
                 }
+                Err(e) => return Err(e),
             },
-            None => {
-                return Err(ErrorResponse::BadRequest("namespace not found".to_string()))
-            }
+            None => return Err(ErrorResponse::BadRequest("namespace not found".to_string())),
         }
     }
-
 
     /// Handles heartbeat from a node in the specified namespace.
     ///
     /// If the node's CPU or memory usage exceeds defined thresholds,
     /// it is considered unhealthy and will be removed from the service ring.
-    /// 
+    ///
     /// Thresholds:
     /// - CPU usage > 80%
     /// - Memory usage > 85%
@@ -107,36 +105,51 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
     ///
     /// Notes:
     /// - If the namespace doesn't exist in `service_map`, the function returns `Ok(())` silently.
-    async fn node_heartbeat(&self, namespace: String, ip_address: String, metric: UtilizationMetric) -> Result<(),ErrorResponse> {
+    /// TODO: also return updated version of unhealthy node list
+    async fn node_heartbeat(
+        &self,
+        namespace: String,
+        ip_address: String,
+        metric: UtilizationMetric,
+    ) -> Result<(), ErrorResponse> {
         let mut is_healthy = false;
         if metric.cpu_usage < 80.00 && metric.memory_usage < 85.00 {
             is_healthy = true
         }
 
         let ring = self.service_map.get(&namespace);
-        
+
         match ring {
-            Some(ring) => {
-                match ring.set_health_status(ip_address, is_healthy) {
-                    Ok(_) => {
-                        return Ok(())
-                    },
-                    Err(e) => {
-                        return Err(e)
-                    }
-                }
+            Some(ring) => match ring.set_health_status(ip_address, is_healthy) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
             },
-            None => {
-                return Ok(())
-            }
+            None => return Ok(()),
         }
     }
 
-    async fn remove_node(&self, namespace: String, ip_address: String) -> Result<(), ErrorResponse> {
-        todo!()
+    // TODO: also return updated version of unhealthy node list
+    async fn mark_node_unhealthy(
+        &self,
+        namespace: String,
+        ip_address: String,
+    ) -> Result<(), ErrorResponse> {
+        let ring = self.service_map.get(&namespace);
+
+        match ring {
+            Some(ring) => match ring.set_health_status(ip_address, false) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
+            },
+            None => return Ok(()),
+        }
     }
 
-    async fn node_failure_report(&self, namespace: String, ip_addres:String) -> Result<(), ErrorResponse> {
+    async fn node_failure_report(
+        &self,
+        namespace: String,
+        ip_addres: String,
+    ) -> Result<(), ErrorResponse> {
         todo!()
     }
 }
