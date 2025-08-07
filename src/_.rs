@@ -72,13 +72,22 @@ pub struct HeartbeatRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HeartbeatResponse {
     #[prost(message, repeated, tag = "1")]
-    pub unhealthy_services: ::prost::alloc::vec::Vec<Node>,
+    pub unhealthy_services: ::prost::alloc::vec::Vec<NodeMap>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NodeMap {
+    #[prost(string, tag = "1")]
+    pub namespace: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub node: ::prost::alloc::vec::Vec<Node>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Node {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
+    pub ip_address: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
     pub namespace: ::prost::alloc::string::String,
 }
 /// Generated client implementations.
