@@ -151,7 +151,7 @@ impl HorboServiceController {
 
                 let res = services
                     .node_heartbeat(
-                        req_inner.namespace,
+                        req_inner.namespace.clone(),
                         ip.to_string(),
                         UtilizationMetric {
                             cpu_usage: req_inner.cpu_usage,
@@ -161,17 +161,24 @@ impl HorboServiceController {
                     .await;
 
                 match res {
-                    Ok(_) => {
+                    Ok(unhealthy_nodes) => {
+                        let mut unhealthy_nodes_list:Vec<NodeMap> = Vec::new();
+
+                        // TODO: controller should not handles any logic
+                        // define service layer to return grpc models, not generic or internal one.
+                        for (namespace, nodes) in unhealthy_nodes.iter() {
+                            let mut node_list_response: Vec<Node> = Vec::new();
+                            for node in nodes.iter(){
+                                node_list_response.push(Node { id: node.id.to_string(), ip_address: node.ip.clone(), namespace: namespace.clone() });
+                            }
+
+                            unhealthy_nodes_list.push(NodeMap { namespace: namespace.clone(), node: node_list_response });
+                        }
+
                         return Ok(Response::new(
                             HeartbeatResponse {
-                                unhealthy_services: Vec::new(),
-                            }, // TODO; compute unhealthy service inside app layer.
-                               // Approach: save each unhealthy service inside a dedicated HashMap
-                               // key == namespace
-                               // value == list of ip addr
-                               // or
-                               // key == ip addr
-                               // value == namespace
+                                unhealthy_services: unhealthy_nodes_list,
+                            },
                         ));
                     }
                     Err(e) => {

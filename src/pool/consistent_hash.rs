@@ -1,20 +1,13 @@
 use crate::common::error::ErrorResponse;
+use crate::core::domain::data::Node;
 use crate::pool::pool::NodePool;
 use crate::utils::hash::ip_to_hash;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Ring {
-    pub nodes: RwLock<Vec<Arc<Node>>>,
-    // pub registered_ips: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Node {
-    pub id: u32,
-    pub ip: String,
-    pub healthy: bool,
+    pub nodes: RwLock<Vec<Node>>,
 }
 
 pub fn build(ip_list: Vec<String>) -> Ring {
@@ -49,7 +42,7 @@ pub fn build(ip_list: Vec<String>) -> Ring {
         match nodes_mapper.get(&id) {
             Some(n) => {
                 let mut guard = res.nodes.write().unwrap();
-                guard.push(Arc::new(n.clone()));
+                guard.push(n.clone());
             }
             None => {}
         }
@@ -117,17 +110,17 @@ impl NodePool for Ring {
                     Some(i) if nodes[i].id == node_id => return Ok(node_id),
                     Some(i) => nodes.insert(
                         i,
-                        Arc::new(Node {
+                        Node {
                             id: node_id,
                             ip: ip_addr.clone(),
                             healthy: true,
-                        }),
+                        },
                     ),
-                    None => nodes.push(Arc::new(Node {
+                    None => nodes.push(Node {
                         id: node_id,
                         ip: ip_addr.clone(),
                         healthy: true,
-                    })),
+                    }),
                 }
             }
             Err(e) => {
@@ -147,16 +140,15 @@ impl NodePool for Ring {
                 let pos = nodes.iter().position(|item| item.id == node_id);
                 match pos {
                     Some(pos) => {
-                        let node = nodes.get_mut(pos);
-                        match node {
+                        match nodes.get_mut(pos) {
                             Some(node) => {
                                 if node.healthy != is_healthy {
                                     // Replaces old node with new copy
-                                    nodes[pos] = Arc::new(Node {
+                                    nodes[pos] = Node {
                                         id: node.id,
                                         ip: node.ip.clone(),
                                         healthy: is_healthy,
-                                    });
+                                    };
                                 }
 
                                 return Ok(());
@@ -177,5 +169,31 @@ impl NodePool for Ring {
         }
 
         Ok(())
+    }
+    
+    fn remove_server(&self, ip_addr: String) -> Result<(), ErrorResponse> {
+        todo!()
+    }
+}
+
+impl Ring {
+    pub fn repr(&self) -> Vec<Node> {
+        let read_nodes = self.nodes.read();
+        let mut result:Vec< Node> = Vec::new();
+
+        match read_nodes {
+            Ok(nodes) => {
+                for node in nodes.iter() {
+                    result.push(node.clone());
+                }
+
+                return result
+            },
+            Err(_) => {
+                /* Don't return error as this func is used
+                in each response to a heartbeat */
+                return result
+            }
+        }
     }
 }

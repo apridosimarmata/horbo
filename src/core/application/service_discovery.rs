@@ -1,4 +1,5 @@
 use crate::common::error::ErrorResponse;
+use crate::core::domain::data::Node;
 use crate::{
     core::domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
     pool::{consistent_hash::Ring, pool::NodePool},
@@ -7,12 +8,14 @@ use std::collections::HashMap;
 
 pub struct ServiceDiscovery {
     pub service_map: HashMap<String, Ring>,
+    pub unhealthy_services: HashMap<String, Ring>,
 }
 
 impl ServiceDiscovery {
     pub fn new(service_map: HashMap<String, Ring>) -> Self {
         ServiceDiscovery {
             service_map: service_map,
+            unhealthy_services: HashMap::new(),
         }
     }
 }
@@ -87,12 +90,15 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
 
     /// Handles heartbeat from a node in the specified namespace.
     ///
-    /// If the node's CPU or memory usage exceeds defined thresholds,
-    /// it is considered unhealthy and will be removed from the service ring.
+    /// Based on the node's reported CPU and memory usage, it determines whether the node
+    /// is healthy or not, then updates its health status in the service ring accordingly.
     ///
-    /// Thresholds:
-    /// - CPU usage > 80%
-    /// - Memory usage > 85%
+    /// A node is considered healthy if:
+    /// - `cpu_usage` < 80.00
+    /// - `memory_usage` < 85.00
+    ///
+    /// After updating the node's status, the function compiles a list of all unhealthy nodes
+    /// across all namespaces and returns it.
     ///
     /// Arguments:
     /// - `namespace`: The namespace the node belongs to.
@@ -100,18 +106,19 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
     /// - `metric`: Current CPU and memory utilization of the node.
     ///
     /// Returns:
-    /// - `Ok(())` if the node is healthy or successfully removed.
-    /// - `Err(ErrorResponse)` if removal fails or other error occurs.
+    /// - `Ok(HashMap<String, Vec<Node>>)` containing all unhealthy nodes grouped by namespace.
+    /// - `Err(ErrorResponse)` if updating the node’s health status fails.
     ///
     /// Notes:
-    /// - If the namespace doesn't exist in `service_map`, the function returns `Ok(())` silently.
-    /// TODO: also return updated version of unhealthy node list
+    /// - If the namespace doesn't exist in `service_map`, health status is not updated, but the function proceeds.
+    /// - All unhealthy nodes from all namespaces are included in the response regardless of which node sent the heartbeat.
+
     async fn node_heartbeat(
         &self,
         namespace: String,
         ip_address: String,
         metric: UtilizationMetric,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<HashMap<String, Vec<Node>>, ErrorResponse> {
         let mut is_healthy = false;
         if metric.cpu_usage < 80.00 && metric.memory_usage < 85.00 {
             is_healthy = true
@@ -121,14 +128,40 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
 
         match ring {
             Some(ring) => match ring.set_health_status(ip_address, is_healthy) {
-                Ok(_) => return Ok(()),
+                Ok(_) => {}
                 Err(e) => return Err(e),
             },
-            None => return Ok(()),
+            None => {}
         }
+
+        /* Build unhealthy nodes response */
+        let mut unhealthy_nodes: HashMap<String, Vec<Node>> = HashMap::new();
+        for (namespace, nodes) in self.unhealthy_services.iter() {
+            unhealthy_nodes.insert(namespace.clone(), nodes.repr());
+        }
+
+        Ok(unhealthy_nodes)
     }
 
-    // TODO: also return updated version of unhealthy node list
+    /// Marks a node as unhealthy in the specified namespace.
+    ///
+    /// This function updates the node status inside the service ring and
+    /// registers it in the unhealthy ring for the given namespace.
+    ///
+    /// Behavior:
+    /// - Attempts to set the node’s health status to `false` in the healthy service ring (`service_map`).
+    /// - Then adds the node to the unhealthy ring (`unhealthy_services`) for tracking.
+    ///
+    /// Arguments:
+    /// - `namespace`: The namespace to which the node belongs.
+    /// - `ip_address`: The IP address of the node to be marked unhealthy.
+    ///
+    /// Returns:
+    /// - `Ok(())` if the node was successfully marked as unhealthy or if the namespace doesn't exist.
+    /// - `Err(ErrorResponse)` if updating health status or adding to the unhealthy ring fails.
+    ///
+    /// Notes:
+    /// - If the namespace is not found in either `service_map` or `unhealthy_services`, the function exits silently.
     async fn mark_node_unhealthy(
         &self,
         namespace: String,
@@ -137,19 +170,23 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         let ring = self.service_map.get(&namespace);
 
         match ring {
-            Some(ring) => match ring.set_health_status(ip_address, false) {
-                Ok(_) => return Ok(()),
+            Some(ring) => match ring.set_health_status(ip_address.clone(), false) {
+                Ok(_) => {}
                 Err(e) => return Err(e),
             },
             None => return Ok(()),
         }
-    }
 
-    async fn node_failure_report(
-        &self,
-        namespace: String,
-        ip_addres: String,
-    ) -> Result<(), ErrorResponse> {
-        todo!()
+        let unhealthy_ring = self.unhealthy_services.get(&namespace);
+
+        match unhealthy_ring {
+            Some(ring) => match ring.add_server(ip_address) {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            },
+            None => {}
+        }
+
+        Ok(())
     }
 }

@@ -52,12 +52,18 @@ message HeartbeatRequest {
 }
 
 message HeartbeatResponse {
-  repeated Node unhealthy_services = 1;
+  repeated NodeMap unhealthy_services = 1;
+}
+
+message NodeMap {
+  string namespace = 1;
+  repeated Node node = 2;
 }
 
 message Node {
   string id = 1;
-  string namespace = 2;
+  string ip_address = 2;
+  string namespace = 3;
 }
 
 service Horbo {
