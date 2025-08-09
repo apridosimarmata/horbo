@@ -1,6 +1,6 @@
 use crate::common::error::ErrorResponse;
 use crate::core::domain::data::Node;
-use crate::grpc::{Node as NodeGrpc};
+use crate::grpc::Node as NodeGrpc;
 use crate::pool::pool::NodePool;
 use crate::utils::hash::ip_to_hash;
 use std::collections::HashMap;
@@ -174,7 +174,7 @@ impl NodePool for Ring {
         Ok(())
     }
     
-    fn remove_server(&self, ip_addr: String) -> Result<(), ErrorResponse> {
+    fn remove_server(&self, _: String) -> Result<(), ErrorResponse> {
         todo!()
     }
 }
