@@ -1,5 +1,6 @@
 use crate::common::error::ErrorResponse;
 use crate::core::domain::data::Node;
+use crate::grpc::{Node as NodeGrpc};
 use crate::pool::pool::NodePool;
 use crate::utils::hash::ip_to_hash;
 use std::collections::HashMap;
@@ -7,11 +8,13 @@ use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Ring {
+    pub namespace: String,
     pub nodes: RwLock<Vec<Node>>,
 }
 
-pub fn build(ip_list: Vec<String>) -> Ring {
+pub fn build(namespace :String,ip_list: Vec<String>) -> Ring {
     let res = Ring {
+        namespace: namespace,
         nodes: RwLock::new(Vec::new()),
         // registered_ips: Vec::new(),
     };
@@ -177,14 +180,18 @@ impl NodePool for Ring {
 }
 
 impl Ring {
-    pub fn repr(&self) -> Vec<Node> {
+    pub fn repr(&self) -> Vec<NodeGrpc> {
         let read_nodes = self.nodes.read();
-        let mut result:Vec< Node> = Vec::new();
+        let mut result:Vec< NodeGrpc> = Vec::new();
 
         match read_nodes {
             Ok(nodes) => {
                 for node in nodes.iter() {
-                    result.push(node.clone());
+                    result.push(NodeGrpc{
+                        id:node.id.to_string(),
+                        ip_address: node.ip.clone(),
+                        namespace: self.namespace.clone(),
+                    });
                 }
 
                 return result

@@ -1,5 +1,5 @@
 use crate::common::error::ErrorResponse;
-use crate::core::domain::data::Node;
+use crate::grpc::{HeartbeatResponse, NodeMap};
 use crate::{
     core::domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
     pool::{consistent_hash::Ring, pool::NodePool},
@@ -118,7 +118,7 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         namespace: String,
         ip_address: String,
         metric: UtilizationMetric,
-    ) -> Result<HashMap<String, Vec<Node>>, ErrorResponse> {
+    ) -> Result<HeartbeatResponse, ErrorResponse> {
         let mut is_healthy = false;
         if metric.cpu_usage < 80.00 && metric.memory_usage < 85.00 {
             is_healthy = true
@@ -134,13 +134,34 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
             None => {}
         }
 
+
+
         /* Build unhealthy nodes response */
-        let mut unhealthy_nodes: HashMap<String, Vec<Node>> = HashMap::new();
+        let mut heartbeat_response = HeartbeatResponse{
+            unhealthy_services: Vec::new(),
+        };
+
+
+        let mut unhealthy_nodes: HashMap<String, usize> = HashMap::new();
         for (namespace, nodes) in self.unhealthy_services.iter() {
-            unhealthy_nodes.insert(namespace.clone(), nodes.repr());
+            match unhealthy_nodes.get(namespace) {
+                Some(_) => {
+                    /* Do nothing, as we don't expect duplicate keys on unhealthy_services */
+                },
+                None => {
+                    let node_map = NodeMap{
+                        namespace:namespace.clone(),
+                        node: nodes.repr(),
+                    };
+
+                    heartbeat_response.unhealthy_services.push(node_map);
+                    unhealthy_nodes.insert(namespace.clone(), heartbeat_response.unhealthy_services.len() - 1);
+                }
+            }
         }
 
-        Ok(unhealthy_nodes)
+
+        Ok(heartbeat_response)
     }
 
     /// Marks a node as unhealthy in the specified namespace.
