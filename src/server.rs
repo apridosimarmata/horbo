@@ -162,24 +162,7 @@ impl HorboServiceController {
 
                 match res {
                     Ok(unhealthy_nodes) => {
-                        let mut unhealthy_nodes_list:Vec<NodeMap> = Vec::new();
-
-                        // TODO: controller should not handles any logic
-                        // define service layer to return grpc models, not generic or internal one.
-                        for (namespace, nodes) in unhealthy_nodes.iter() {
-                            let mut node_list_response: Vec<Node> = Vec::new();
-                            for node in nodes.iter(){
-                                node_list_response.push(Node { id: node.id.to_string(), ip_address: node.ip.clone(), namespace: namespace.clone() });
-                            }
-
-                            unhealthy_nodes_list.push(NodeMap { namespace: namespace.clone(), node: node_list_response });
-                        }
-
-                        return Ok(Response::new(
-                            HeartbeatResponse {
-                                unhealthy_services: unhealthy_nodes_list,
-                            },
-                        ));
+                        return Ok(Response::new(unhealthy_nodes))
                     }
                     Err(e) => {
                         return Err(Status::internal(e.to_string()));
