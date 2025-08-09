@@ -134,8 +134,6 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
             None => {}
         }
 
-
-
         /* Build unhealthy nodes response */
         let mut heartbeat_response = HeartbeatResponse{
             unhealthy_services: Vec::new(),

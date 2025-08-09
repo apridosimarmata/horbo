@@ -6,7 +6,7 @@ pub struct Metric {
     #[prost(float, tag = "2")]
     pub memory: f32,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Handshake {
     #[prost(string, tag = "1")]
     pub ip_address: ::prost::alloc::string::String,
@@ -15,45 +15,45 @@ pub struct Handshake {
     #[prost(string, tag = "3")]
     pub api_key: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct FailureReport {
     #[prost(string, tag = "1")]
     pub namespace: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub ip_address: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct IpRequest {
     #[prost(string, tag = "1")]
     pub client_ip_address: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub namespace: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentRegistrationResponse {
     #[prost(string, tag = "1")]
     pub service_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentRegistrationRequest {
     #[prost(string, tag = "1")]
     pub api_key: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub namespace: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LookupRequest {
     #[prost(string, tag = "1")]
     pub namespace: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LookupResponse {
     #[prost(string, tag = "1")]
     pub ip_address: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub namespace: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct FailureReportRequest {
     #[prost(string, tag = "1")]
     pub ip_address: ::prost::alloc::string::String,
@@ -81,7 +81,7 @@ pub struct NodeMap {
     #[prost(message, repeated, tag = "2")]
     pub node: ::prost::alloc::vec::Vec<Node>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Node {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
@@ -196,7 +196,7 @@ pub mod horbo_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/Horbo/RegisterAgent");
             let mut req = request.into_request();
             req.extensions_mut().insert(GrpcMethod::new("Horbo", "RegisterAgent"));
@@ -214,7 +214,7 @@ pub mod horbo_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/Horbo/ServiceLookup");
             let mut req = request.into_request();
             req.extensions_mut().insert(GrpcMethod::new("Horbo", "ServiceLookup"));
@@ -232,7 +232,7 @@ pub mod horbo_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/Horbo/ServiceFailureReport",
             );
@@ -256,7 +256,7 @@ pub mod horbo_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/Horbo/Heartbeat");
             let mut req = request.into_request();
             req.extensions_mut().insert(GrpcMethod::new("Horbo", "Heartbeat"));
@@ -406,7 +406,7 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RegisterAgentSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -449,7 +449,7 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ServiceLookupSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -494,7 +494,7 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ServiceFailureReportSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -537,7 +537,7 @@ pub mod horbo_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HeartbeatSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
