@@ -3,10 +3,10 @@ use crate::pool::consistent_hash::{build, Ring};
 use crate::server::HorboServiceController;
 use core::schema::{init, ServiceDefinition};
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tonic::transport::Server as TonicServer;
-
+use tonic::transport::{Certificate, Identity, Server as TonicServer, ServerTlsConfig};
 mod common;
 mod core;
 mod grpc;
@@ -36,7 +36,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             core::application::service_discovery::ServiceDiscovery::new(services),
         )),
     });
+
+    /* mTLS support */
+    let server_cert = fs::read("./keys/server.crt")?;
+    let server_key = fs::read("./keys/server.key")?;
+    let server_identity = Identity::from_pem(server_cert, server_key);
+
+    let client_ca_cert = fs::read("./keys/ca.crt")?;
+    let client_ca = Certificate::from_pem(client_ca_cert);
+    let tls_config = ServerTlsConfig::new()
+        .identity(server_identity)
+        .client_ca_root(client_ca);
+
     TonicServer::builder()
+        .tls_config(tls_config)?
         .add_service(svc)
         .serve("[::1]:50051".parse()?)
         .await?;
