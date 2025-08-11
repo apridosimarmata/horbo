@@ -1,5 +1,5 @@
 use crate::{
-    common::error::ErrorResponse, core::domain::data::UtilizationMetric, grpc::HeartbeatResponse,
+    common::error::ErrorResponse, core::domain::data::UtilizationMetric, grpc::{HeartbeatResponse, LookupResponse},
 };
 
 pub trait ServiceDiscoveryUsecase {
@@ -17,7 +17,7 @@ pub trait ServiceDiscoveryUsecase {
         &self,
         namespace: String,
         client_ip_address: String,
-    ) -> Result<String, ErrorResponse>;
+    ) -> Result<LookupResponse, ErrorResponse>;
 
     /* Updated to return response object instead domain */
     async fn node_heartbeat(

@@ -114,7 +114,6 @@ impl HorboServiceController {
         &self,
         request: Request<FailureReportRequest>,
     ) -> Result<Response<()>, Status> {
-        // TODO: How to tell if each request is legitimate request and being made by registered node
         let ip_address = request.remote_addr();
 
         match ip_address {
@@ -186,15 +185,12 @@ impl HorboServiceController {
                 let services = self.service.lock().await;
                 let req_inner = request.into_inner();
 
-                let service_ip = services
+                let lookup_response = services
                     .service_lookup(req_inner.namespace.clone(), ip.to_string())
                     .await;
-                match service_ip {
-                    Ok(service_ip) => {
-                        return Ok(Response::new(LookupResponse {
-                            ip_address: service_ip,
-                            namespace: req_inner.namespace, // todo: send the namespace from the Ring object
-                        }));
+                match lookup_response {
+                    Ok(lookup_response) => {
+                        return Ok(Response::new(lookup_response));
                     }
                     Err(e) => {
                         return Err(Status::internal(e.to_string()));
