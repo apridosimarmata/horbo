@@ -1,5 +1,5 @@
 use crate::common::error::ErrorResponse;
-use crate::grpc::{HeartbeatResponse, LookupResponse, NodeMap};
+use crate::grpc::{AgentRegistrationResponse, HeartbeatResponse, LookupResponse, NodeMap};
 use crate::{
     core::domain::{data::UtilizationMetric, server::ServiceDiscoveryUsecase},
     pool::{consistent_hash::Ring, pool::NodePool},
@@ -40,14 +40,16 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         &self,
         namespace: String,
         ip_address: String,
-    ) -> Result<u32, ErrorResponse> {
+    ) -> Result<AgentRegistrationResponse, ErrorResponse> {
         let ring = self.service_map.get(&namespace);
 
         match ring {
             Some(ring) => {
                 let unique_id = ring.add_server(ip_address);
                 match unique_id {
-                    Ok(id) => return Ok(id),
+                    Ok(id) => return Ok(AgentRegistrationResponse{
+                        service_id: id.to_string(),
+                    }),
                     Err(e) => return Err(e),
                 }
             }
