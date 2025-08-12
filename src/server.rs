@@ -213,14 +213,12 @@ impl HorboServiceController {
             Some(ip) => {
                 let services = self.service.lock().await;
                 let req_inner = request.into_inner();
-                let id = services
+                let response = services
                     .register_node(req_inner.namespace, ip.to_string())
                     .await;
 
-                match id {
-                    Ok(_id) => Ok(Response::new(AgentRegistrationResponse {
-                        service_id: _id.to_string(),
-                    })),
+                match response {
+                    Ok(id) => Ok(Response::new(id)),
                     Err(_) => Err(Status::invalid_argument("namespace doesn't exists")),
                 }
             }
