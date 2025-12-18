@@ -27,7 +27,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /* init `services` singleton */
     let mut services: HashMap<String, Ring> = HashMap::new();
     for (name, ip_addres) in services_definition.services.into_iter() {
-        services.insert(name.clone(), build(name, ip_addres));
+        match build(name.clone(), ip_addres) {
+            Ok(ring) => {
+                services.insert(name, ring);
+            }
+            Err(e) => {
+                eprintln!("failed to build ring: {}", e);
+                continue;
+            }
+        }
     }
 
     /* build and serve grpc */

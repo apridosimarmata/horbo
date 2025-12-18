@@ -45,11 +45,13 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
 
         match ring {
             Some(ring) => {
-                let unique_id = ring.add_server(ip_address);
+                let unique_id = ring.add_node(ip_address);
                 match unique_id {
-                    Ok(id) => return Ok(AgentRegistrationResponse{
-                        service_id: id.to_string(),
-                    }),
+                    Ok(id) => {
+                        return Ok(AgentRegistrationResponse {
+                            service_id: id.to_string(),
+                        })
+                    }
                     Err(e) => return Err(e),
                 }
             }
@@ -82,7 +84,10 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         match ring {
             Some(ring) => match ring.get(client_ip_address) {
                 Ok(service_ip) => {
-                    return Ok(LookupResponse { ip_address: service_ip, namespace: ring.namespace.clone() });
+                    return Ok(LookupResponse {
+                        ip_address: service_ip,
+                        namespace: ring.namespace.clone(),
+                    });
                 }
                 Err(e) => return Err(e),
             },
@@ -137,29 +142,30 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         }
 
         /* Build unhealthy nodes response */
-        let mut heartbeat_response = HeartbeatResponse{
+        let mut heartbeat_response = HeartbeatResponse {
             unhealthy_services: Vec::new(),
         };
-
 
         let mut unhealthy_nodes: HashMap<String, usize> = HashMap::new();
         for (namespace, nodes) in self.unhealthy_services.iter() {
             match unhealthy_nodes.get(namespace) {
                 Some(_) => {
                     /* Do nothing, as we don't expect duplicate keys on unhealthy_services */
-                },
+                }
                 None => {
-                    let node_map = NodeMap{
-                        namespace:namespace.clone(),
+                    let node_map = NodeMap {
+                        namespace: namespace.clone(),
                         node: nodes.repr(),
                     };
 
                     heartbeat_response.unhealthy_services.push(node_map);
-                    unhealthy_nodes.insert(namespace.clone(), heartbeat_response.unhealthy_services.len() - 1);
+                    unhealthy_nodes.insert(
+                        namespace.clone(),
+                        heartbeat_response.unhealthy_services.len() - 1,
+                    );
                 }
             }
         }
-
 
         Ok(heartbeat_response)
     }
@@ -201,7 +207,7 @@ impl ServiceDiscoveryUsecase for ServiceDiscovery {
         let unhealthy_ring = self.unhealthy_services.get(&namespace);
 
         match unhealthy_ring {
-            Some(ring) => match ring.add_server(ip_address) {
+            Some(ring) => match ring.add_node(ip_address) {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             },

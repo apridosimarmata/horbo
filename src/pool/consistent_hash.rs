@@ -8,23 +8,27 @@ use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Ring {
+    /* unique namespace, for grouping nodes */
     pub namespace: String,
+    /* lock protected nodes list */
     pub nodes: RwLock<Vec<Node>>,
 }
 
-pub fn build(namespace :String,ip_list: Vec<String>) -> Ring {
-    let res = Ring {
+/* build consistent hash ring */
+pub fn build(namespace: String, ip_list: Vec<String>) -> Result<Ring, ErrorResponse> {
+    let ring = Ring {
         namespace: namespace,
         nodes: RwLock::new(Vec::new()),
-        // registered_ips: Vec::new(),
     };
 
     let mut nodes_mapper: HashMap<u32, Node> = HashMap::new();
     let mut node_ids: Vec<u32> = Vec::new();
 
+    /* store node to the mapper */
     for ip_addr in ip_list {
         let node_id = ip_to_hash(&ip_addr);
 
+        /* TODO: should do health check prior to adding node */
         let bind_id = ip_addr.clone();
         nodes_mapper.insert(
             node_id,
@@ -35,26 +39,37 @@ pub fn build(namespace :String,ip_list: Vec<String>) -> Ring {
             },
         );
 
-        // should do health check here
         node_ids.push(node_id);
     }
 
+    /* should be sorted in for consistent hash ring */
     node_ids.sort();
 
+    /* add nodes to ring */
     for id in node_ids {
-        match nodes_mapper.get(&id) {
+        match nodes_mapper.remove(&id) {
+            /* remove will return the object instead of the reference */
             Some(n) => {
-                let mut guard = res.nodes.write().unwrap();
-                guard.push(n.clone());
+                let mut guard = match ring.nodes.write() {
+                    Ok(guard) => guard,
+                    Err(e) => return Err(ErrorResponse::Internal(e.to_string())),
+                };
+
+                guard.push(n);
             }
-            None => {}
+            None => {
+                /* smelly, but ok for now */
+                eprintln!("failed to add node to ring {}", id);
+                continue;
+            }
         }
     }
 
-    res
+    Ok(ring)
 }
 
 impl NodePool for Ring {
+    /* get node from ring */
     fn get(&self, client_ip_addr: String) -> Result<String, ErrorResponse> {
         let client_id = ip_to_hash(&client_ip_addr);
         let read_nodes = self.nodes.read();
@@ -72,7 +87,7 @@ impl NodePool for Ring {
                     .position(|item| (item.id >= client_id && item.healthy));
 
                 match pos {
-                    Some(pos) => return Ok(nodes[pos].id.to_string()),
+                    Some(pos) => return Ok(nodes[pos].ip.to_string()),
                     None => {
                         // Pick closest node to client_id
                         let mut closest_id: u32 = 0;
@@ -99,7 +114,8 @@ impl NodePool for Ring {
         }
     }
 
-    fn add_server(&self, ip_addr: String) -> Result<u32, ErrorResponse> {
+    /* add node to ring */
+    fn add_node(&self, ip_addr: String) -> Result<u32, ErrorResponse> {
         let node_id = ip_to_hash(&ip_addr);
         let write_nodes = self.nodes.write();
 
@@ -134,6 +150,7 @@ impl NodePool for Ring {
         Ok(node_id)
     }
 
+    /* set node health status */
     fn set_health_status(&self, ip_addr: String, is_healthy: bool) -> Result<(), ErrorResponse> {
         let write_nodes = self.nodes.write();
 
@@ -173,7 +190,7 @@ impl NodePool for Ring {
 
         Ok(())
     }
-    
+
     fn remove_server(&self, _: String) -> Result<(), ErrorResponse> {
         todo!()
     }
@@ -182,24 +199,24 @@ impl NodePool for Ring {
 impl Ring {
     pub fn repr(&self) -> Vec<NodeGrpc> {
         let read_nodes = self.nodes.read();
-        let mut result:Vec< NodeGrpc> = Vec::new();
+        let mut result: Vec<NodeGrpc> = Vec::new();
 
         match read_nodes {
             Ok(nodes) => {
                 for node in nodes.iter() {
-                    result.push(NodeGrpc{
-                        id:node.id.to_string(),
+                    result.push(NodeGrpc {
+                        id: node.id.to_string(),
                         ip_address: node.ip.clone(),
                         namespace: self.namespace.clone(),
                     });
                 }
 
-                return result
-            },
+                return result;
+            }
             Err(_) => {
                 /* Don't return error as this func is used
                 in each response to a heartbeat */
-                return result
+                return result;
             }
         }
     }

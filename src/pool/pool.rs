@@ -1,8 +1,8 @@
 use crate::common::error::ErrorResponse;
 
 pub trait NodePool {
-    fn get(&self, client_ip_addr: String) -> Result<String, ErrorResponse> ;
-    fn add_server(&self, ip_addr: String) -> Result<u32, ErrorResponse>;
+    fn get(&self, client_ip_addr: String) -> Result<String, ErrorResponse>;
+    fn add_node(&self, ip_addr: String) -> Result<u32, ErrorResponse>;
     fn remove_server(&self, ip_addr: String) -> Result<(), ErrorResponse>;
     fn set_health_status(&self, ip_addr: String, is_healthy: bool) -> Result<(), ErrorResponse>;
 }
